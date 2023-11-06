@@ -34,6 +34,29 @@ class Dyck2Generator:
         return string
 
 
+def get_valid_continuations(tokens):
+    allowed = []
+    stack = []
+    for token in tokens:
+        if stack and stack[-1] == "[":
+            allowed.append("]")
+        elif stack and stack[-1] == "(":
+            allowed.append(")")
+        else:
+            allowed.append("<UNK>")
+
+        # Update the stack.
+        if token == "(" or token == "[":
+            stack.append(token)
+        elif stack and stack[-1] == "(" and token == ")":
+            stack.pop(-1)
+        elif stack and stack[-1] == "[" and token == "]":
+            stack.pop(-1)
+        else:
+            raise ValueError("Invalid Dyck sequence")
+    
+    return allowed
+
 if __name__ == "__main__":
     dyck = Dyck2Generator(.5, .25)
     string = []
