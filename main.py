@@ -21,9 +21,8 @@ logging.basicConfig(level=logging.INFO)
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--ckpts_dir", type=str)
-    parser.add_argument("--results_path", type=str)
-    parser.add_argument("--n_train", type=int, default=100000)
+    parser.add_argument("--output_dir", type=str)
+    parser.add_argument("--n_train", type=int, default=1000000)
     parser.add_argument("--n_eval", type=int, default=5000)
     # === Data generation parameters ===
     parser.add_argument("-p", type=float, default=.5)
@@ -35,7 +34,7 @@ def parse_args():
     parser.add_argument("--beta2", type=float, default=.95)
     # Batch size should be: 500000 tokens / (1024 tokens/example) = 488 examples, which is ~ 30 * 16.
     parser.add_argument("--step_threshold", type=int, default=30)
-    parser.add_argument("--save_threshold", type=int, default=10000)
+    parser.add_argument("--save_threshold", type=int, default=5000)
     parser.add_argument("--eval_threshold", type=int, default=1000)
     parser.add_argument("--no_save", action="store_true")
     parser.add_argument("--n_epochs", type=int, default=1)
@@ -86,7 +85,7 @@ class Trainer:
                 if (step + 1) % args.save_threshold == 0 or step + 1 == len(train_dataloader):
                     if not args.no_save:
                         pbar.set_description("SAVE")
-                        accelerator.save_state(output_dir=os.path.join(args.ckpts_dir, str(last_step + step)))
+                        accelerator.save_state(output_dir=os.path.join(args.output_dir, str(last_step + step)))
 
                 if (step + 1) % args.eval_threshold == 0 or step + 1 == len(train_dataloader):
                     pbar.set_description("EVAL")
@@ -159,9 +158,11 @@ def main(args):
     trainer.metrics["validity"] = ValidityMetric([indexer.get_index(")"), indexer.get_index("]")])
 
     log.info("Training model!")
-    os.makedirs(args.ckpts_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
+    with open(os.path.join(args.output_dir, "args.json"), "w") as fh:
+        json.dump(vars(args), fh)
     blob = trainer.train(train_dataloader, val_dataloader, args)
-    with open(args.results_path, "w") as fh:
+    with open(os.path.join(args.output_dir, "metrics.json"), "w") as fh:
         json.dump(blob, fh)
 
 if __name__ == "__main__":
